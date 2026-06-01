@@ -226,13 +226,14 @@ class _LoginViewState extends State<LoginView> {
                     children: [
                       Image.asset(
                         'assets/images/Alirin logo.png',
-                        height: 70,
+                        height: 130,
                         fit: BoxFit.contain,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 14),
                       Image.asset(
                         'assets/images/Alirin.png',
-                        height: 28,
+                        
+                        height: 30,
                         fit: BoxFit.contain,
                       ),
                     ],
