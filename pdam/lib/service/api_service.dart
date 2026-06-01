@@ -285,6 +285,26 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateMyProfile(
+      int id, Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+      final response = await http.patch(
+        Uri.parse('$baseUrl/customers/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'app-key': appKey,
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal update profil: $e'};
+    }
+  }
+
   static Future<Map<String, dynamic>> getServiceById(int id) async {
     try {
       final prefs = await SharedPreferences.getInstance();

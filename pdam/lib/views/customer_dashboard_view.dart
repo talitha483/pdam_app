@@ -5,6 +5,7 @@ import 'package:pdam/models/customer_models.dart';
 import 'package:pdam/service/api_service.dart';
 import 'package:pdam/service/app_collors.dart';
 import 'customer_upload_bukti_page.dart';
+import 'edit_customer_profile_view.dart';
 import 'login_view.dart';
 
 class CustomerDashboardView extends StatefulWidget {
@@ -68,7 +69,11 @@ class _CustomerDashboardViewState extends State<CustomerDashboardView> {
         onRefresh: _loadData,
       ),
       _CustomerBayarTab(bills: _bills, isLoading: _isLoading),
-      _CustomerProfileTab(customer: _customer, isLoading: _isLoading),
+      _CustomerProfileTab(
+        customer: _customer,
+        isLoading: _isLoading,
+        onRefresh: _loadData,
+      ),
     ];
 
     return Scaffold(
@@ -1205,8 +1210,13 @@ class _PaymentHistoryCard extends StatelessWidget {
 class _CustomerProfileTab extends StatelessWidget {
   final CustomerModel? customer;
   final bool isLoading;
+  final VoidCallback onRefresh;
 
-  const _CustomerProfileTab({this.customer, required this.isLoading});
+  const _CustomerProfileTab({
+    this.customer,
+    required this.isLoading,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1324,6 +1334,34 @@ class _CustomerProfileTab extends StatelessWidget {
             ),
             const SizedBox(height: 30),
             
+            if (customer != null)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final changed = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditCustomerProfileView(customer: customer!),
+                      ),
+                    );
+                    if (changed == true) {
+                      onRefresh();
+                    }
+                  },
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit Profil',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -1342,6 +1380,7 @@ class _CustomerProfileTab extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.danger,
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 child: const Text(
                   'Keluar',
