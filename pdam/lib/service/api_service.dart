@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -198,7 +199,6 @@ class ApiService {
     }
   }
 
-  // FIX: tambah updateBill untuk fitur edit tagihan
   static Future<Map<String, dynamic>> updateBill(
       String token, int id, Map<String, dynamic> data) async {
     try {
@@ -229,8 +229,8 @@ class ApiService {
   static Future<Map<String, dynamic>> getPayments(String token,
       {int page = 1, int quantity = 50}) async {
     try {
-      final uri =
-          Uri.parse('$baseUrl/payments?page=$page&quantity=$quantity&search=');
+      final uri = Uri.parse(
+          '$baseUrl/payments?page=$page&quantity=$quantity&search=');
       final response = await http.get(uri, headers: headers(token));
       return jsonDecode(response.body);
     } catch (e) {
@@ -264,10 +264,7 @@ class ApiService {
     }
   }
 
-  // ===========================================================================
-  // CUSTOMER METHODS (ADDED BACK FROM OLD API_SERVICE)
-  // ===========================================================================
-
+  // ===================== CUSTOMER METHODS =====================
   static Future<Map<String, dynamic>> getMyProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -308,7 +305,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getMyBills({int page = 1, int quantity = 100}) async {
+  static Future<Map<String, dynamic>> getMyBills(
+      {int page = 1, int quantity = 100}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -328,7 +326,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getMyPayments({int page = 1, int quantity = 100}) async {
+  static Future<Map<String, dynamic>> getMyPayments(
+      {int page = 1, int quantity = 100}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -348,10 +347,24 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>?> createPayment(int billId, String filePath) async {
+  // ===================== CREATE PAYMENT (FIX) =====================
+  static Future<Map<String, dynamic>?> createPayment(
+      int billId, String filePath) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
+
+      print('=== CREATE PAYMENT ===');
+      print('billId: $billId');
+      print('filePath: $filePath');
+      print('token: $token');
+
+      // Tentukan tipe file dari ekstensi
+      final ext = filePath.split('.').last.toLowerCase();
+      final mediaType = ext == 'png'
+          ? MediaType('image', 'png')
+          : MediaType('image', 'jpeg');
+
       final uri = Uri.parse('$baseUrl/payments');
       final request = http.MultipartRequest('POST', uri);
       request.headers.addAll({
@@ -359,16 +372,33 @@ class ApiService {
         'Authorization': 'Bearer $token',
       });
       request.fields['bill_id'] = billId.toString();
-      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          filePath,
+          contentType: mediaType,
+        ),
+      );
+
+      print('Sending request...');
       final streamed = await request.send();
       final respBody = await streamed.stream.bytesToString();
+
+      print('Status: ${streamed.statusCode}');
+      print('Response: $respBody');
+
       if (streamed.statusCode == 200 || streamed.statusCode == 201) {
         final decoded = jsonDecode(respBody);
         return decoded['data'] ?? decoded;
       }
-      return null;
+      final decoded = jsonDecode(respBody);
+      return {
+        'success': false,
+        'message': decoded['message'] ?? 'Upload gagal'
+      };
     } catch (e) {
-      return null;
+      print('createPayment ERROR: $e');
+      return {'success': false, 'message': e.toString()};
     }
   }
 
@@ -380,7 +410,6 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
-
 
   static Future<Map<String, dynamic>> getMyPaymentDetail(int id) async {
     try {
@@ -396,7 +425,10 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
       }
-      return {'success': false, 'message': 'Gagal mengambil detail pembayaran'};
+      return {
+        'success': false,
+        'message': 'Gagal mengambil detail pembayaran'
+      };
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
@@ -416,10 +448,12 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
       }
-      return {'success': false, 'message': 'Gagal mengambil tagihan detail'};
+      return {
+        'success': false,
+        'message': 'Gagal mengambil tagihan detail'
+      };
     } catch (e) {
       return {'success': false, 'message': e.toString()};
     }
   }
-
 }

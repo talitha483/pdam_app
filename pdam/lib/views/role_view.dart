@@ -1,183 +1,183 @@
-import 'package:flutter/material.dart';
-import 'customer_login_view.dart';
-import 'login_view.dart';
+// import 'package:flutter/material.dart';
+// import 'customer_login_view.dart';
+// import 'login_view.dart';
 
-class RoleView extends StatefulWidget {
-  const RoleView({super.key});
+// class RoleView extends StatefulWidget {
+//   const RoleView({super.key});
 
-  @override
-  State<RoleView> createState() => _RoleViewState();
-}
+//   @override
+//   State<RoleView> createState() => _RoleViewState();
+// }
 
-class _RoleViewState extends State<RoleView>
-    with TickerProviderStateMixin {
+// class _RoleViewState extends State<RoleView>
+//     with TickerProviderStateMixin {
 
-  late AnimationController entrance;
-  late Animation<double> fade;
-  late Animation<Offset> slide;
+//   late AnimationController entrance;
+//   late Animation<double> fade;
+//   late Animation<Offset> slide;
 
-  @override
-  void initState() {
-    super.initState();
+//   @override
+//   void initState() {
+//     super.initState();
 
-    entrance = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
+//     entrance = AnimationController(
+//       vsync: this,
+//       duration: const Duration(milliseconds: 700),
+//     );
 
-    fade = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(
-      parent: entrance,
-      curve: Curves.easeIn,
-    ));
+//     fade = Tween<double>(
+//       begin: 0,
+//       end: 1,
+//     ).animate(CurvedAnimation(
+//       parent: entrance,
+//       curve: Curves.easeIn,
+//     ));
 
-    slide = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: entrance,
-      curve: Curves.easeOut,
-    ));
+//     slide = Tween<Offset>(
+//       begin: const Offset(0, 0.1),
+//       end: Offset.zero,
+//     ).animate(CurvedAnimation(
+//       parent: entrance,
+//       curve: Curves.easeOut,
+//     ));
 
-    entrance.forward();
-  }
+//     entrance.forward();
+//   }
 
-  @override
-  void dispose() {
-    entrance.dispose();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     entrance.dispose();
+//     super.dispose();
+//   }
 
-  @override
-  Widget build(BuildContext context) {
+//   @override
+//   Widget build(BuildContext context) {
 
-    return Scaffold(
+//     return Scaffold(
 
-      body: Container(
+//       body: Container(
 
-        width: double.infinity,
-        height: double.infinity,
+//         width: double.infinity,
+//         height: double.infinity,
 
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xff4DBCF2),
-              Color(0xff025CA8),
-            ],
-          ),
-        ),
+//         decoration: const BoxDecoration(
+//           gradient: LinearGradient(
+//             begin: Alignment.topCenter,
+//             end: Alignment.bottomCenter,
+//             colors: [
+//               Color(0xff4DBCF2),
+//               Color(0xff025CA8),
+//             ],
+//           ),
+//         ),
 
-        child: SafeArea(
+//         child: SafeArea(
 
-          child: FadeTransition(
+//           child: FadeTransition(
 
-            opacity: fade,
+//             opacity: fade,
 
-            child: SlideTransition(
+//             child: SlideTransition(
 
-              position: slide,
+//               position: slide,
 
-              child: SingleChildScrollView(
+//               child: SingleChildScrollView(
 
-                child: Padding(
+//                 child: Padding(
 
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 24,
-                  ),
+//                   padding: const EdgeInsets.symmetric(
+//                     horizontal: 28,
+//                     vertical: 24,
+//                   ),
 
-                  child: Column(
+//                   child: Column(
 
-                    children: [
+//                     children: [
 
-                      const SizedBox(height: 30),
+//                       const SizedBox(height: 30),
 
-                      Image.asset(
-                        'assets/images/Alirin logo.png',
-                        width: 130,
-                      ),
+//                       Image.asset(
+//                         'assets/images/Alirin logo.png',
+//                         width: 130,
+//                       ),
 
-                      const SizedBox(height: 40),
+//                       const SizedBox(height: 40),
 
-                      const Text(
-                        "Pilih Peran",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+//                       const Text(
+//                         "Pilih Peran",
+//                         style: TextStyle(
+//                           color: Colors.white,
+//                           fontSize: 34,
+//                           fontWeight: FontWeight.bold,
+//                         ),
+//                       ),
 
-                      const SizedBox(height: 12),
+//                       const SizedBox(height: 12),
 
-                      Text(
-                        "Masuk sebagai customer atau admin",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
-                          fontSize: 15,
-                        ),
-                      ),
+//                       Text(
+//                         "Masuk sebagai customer atau admin",
+//                         textAlign: TextAlign.center,
+//                         style: TextStyle(
+//                           color: Colors.white.withOpacity(0.85),
+//                           fontSize: 15,
+//                         ),
+//                       ),
 
-                      const SizedBox(height: 55),
+//                       const SizedBox(height: 55),
 
-                      // Tombol Customer → ke CustomerLoginView
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CustomerLoginView(),
-                            ),
-                          );
-                        },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
-                          child: Image.asset(
-                            'assets/images/Frame 651.png',
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
+//                       // Tombol Customer → ke CustomerLoginView
+//                       GestureDetector(
+//                         onTap: () {
+//                           Navigator.push(
+//                             context,
+//                             MaterialPageRoute(
+//                               builder: (_) => const CustomerLoginView(),
+//                             ),
+//                           );
+//                         },
+//                         child: ClipRRect(
+//                           borderRadius: BorderRadius.circular(30),
+//                           child: Image.asset(
+//                             'assets/images/Frame 651.png',
+//                             width: double.infinity,
+//                             fit: BoxFit.cover,
+//                           ),
+//                         ),
+//                       ),
 
-                      const SizedBox(height: 28),
+//                       const SizedBox(height: 28),
 
-                      // Tombol Admin → ke LoginView
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginView(
+//                       // Tombol Admin → ke LoginView
+//                       GestureDetector(
+//                         onTap: () {
+//                           Navigator.push(
+//                             context,
+//                             MaterialPageRoute(
+//                               builder: (_) => const LoginView(
                                 
-                              ),
-                            ),
-                          );
-                        },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
-                          child: Image.asset(
-                            'assets/images/Frame 652.png',
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
+//                               ),
+//                             ),
+//                           );
+//                         },
+//                         child: ClipRRect(
+//                           borderRadius: BorderRadius.circular(30),
+//                           child: Image.asset(
+//                             'assets/images/Frame 652.png',
+//                             width: double.infinity,
+//                             fit: BoxFit.cover,
+//                           ),
+//                         ),
+//                       ),
 
-                      const SizedBox(height: 30),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+//                       const SizedBox(height: 30),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

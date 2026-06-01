@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:pdam/models/bill_models.dart';
 import 'package:pdam/models/customer_models.dart';
 import 'package:pdam/service/api_service.dart';
 import 'package:pdam/service/app_collors.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:pdam/views/customer_status_pembayaran_page.dart';
 
 class CustomerUploadBuktiPage extends StatefulWidget {
   final BillModel bill;
@@ -17,7 +18,8 @@ class CustomerUploadBuktiPage extends StatefulWidget {
   });
 
   @override
-  State<CustomerUploadBuktiPage> createState() => _CustomerUploadBuktiPageState();
+  State<CustomerUploadBuktiPage> createState() =>
+      _CustomerUploadBuktiPageState();
 }
 
 class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
@@ -27,7 +29,10 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
   String _imageSize = '';
 
   Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (picked != null) {
       final file = File(picked.path);
       final size = await file.length();
@@ -42,26 +47,47 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
   Future<void> _upload() async {
     if (_image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih bukti pembayaran terlebih dahulu')),
+        const SnackBar(
+          content: Text('Pilih bukti pembayaran terlebih dahulu'),
+        ),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    
-    final result = await ApiService.createPayment(widget.bill.id, _image!.path);
-
+    final result = await ApiService.createPayment(
+        widget.bill.id, _image!.path);
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result != null) {
+    if (result != null && result['success'] != false) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bukti berhasil diupload'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Bukti berhasil diupload'),
+          backgroundColor: AppColors.success,
+        ),
       );
-      Navigator.pop(context, true);
+      final paymentId = result['id'] ?? result['data']?['id'];
+      if (paymentId != null && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CustomerStatusPembayaranPage(
+              paymentId: paymentId,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pop(context, true);
+      }
     } else {
+      final msg = result?['message']?.toString() ??
+          'Gagal upload bukti pembayaran';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal upload'), backgroundColor: AppColors.danger),
+        SnackBar(
+          content: Text('❌ $msg'),
+          backgroundColor: AppColors.danger,
+        ),
       );
     }
   }
@@ -84,11 +110,15 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Upload Bukti Pembayaran', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text('Upload Bukti Pembayaran',
+                  style: TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              const Text('Silahkan unggah bukti pembayaranmu untuk kami verifikasi', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const Text(
+                  'Silahkan unggah bukti pembayaranmu untuk kami verifikasi',
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 24),
-              
+
               // Detail Card
               Container(
                 padding: const EdgeInsets.all(20),
@@ -96,51 +126,44 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4))
                   ],
                 ),
                 child: Column(
                   children: [
-                    _detailRow(Icons.person_outline, 'Customer', widget.bill.displayName),
+                    _detailRow(Icons.person_outline, 'Customer',
+                        widget.bill.displayName),
                     const Divider(height: 24),
-                    _detailRow(Icons.calendar_month, 'Periode', '${widget.bill.monthName} ${widget.bill.year}'),
+                    _detailRow(Icons.calendar_month, 'Periode',
+                        '${widget.bill.monthName} ${widget.bill.year}'),
                     const Divider(height: 24),
-                    _detailRow(Icons.water_drop_outlined, 'Pemakaian', '${widget.bill.usageValue} m³'),
+                    _detailRow(Icons.water_drop_outlined, 'Pemakaian',
+                        '${widget.bill.usageValue} m³'),
                     const Divider(height: 24),
-                    _detailRow(Icons.speed, 'Meter', widget.bill.measurementNumber),
+                    _detailRow(Icons.speed, 'Meter',
+                        widget.bill.measurementNumber),
                     const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total tagihan', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(widget.bill.totalFormatted, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger, fontSize: 16)),
+                        const Text('Total tagihan',
+                            style:
+                                TextStyle(fontWeight: FontWeight.bold)),
+                        Text(widget.bill.totalFormatted,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.danger,
+                                fontSize: 16)),
                       ],
                     )
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              
-              // Metode Pembayaran Button
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.credit_card, color: AppColors.primary),
-                    SizedBox(width: 12),
-                    Expanded(child: Text('Pilih metode pembayaran', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold))),
-                    Icon(Icons.chevron_right, color: AppColors.primary),
-                  ],
-                ),
-              ),
               const SizedBox(height: 24),
-              
+
               // Upload Box
               GestureDetector(
                 onTap: _pickImage,
@@ -150,23 +173,31 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.blue.withOpacity(0.5), width: 1.5, style: BorderStyle.solid), // Should be dashed but solid for simplicity
+                    border: Border.all(
+                        color: Colors.blue.withOpacity(0.5),
+                        width: 1.5),
                   ),
                   child: const Column(
                     children: [
-                      Icon(Icons.cloud_upload_outlined, color: Colors.blue, size: 40),
+                      Icon(Icons.cloud_upload_outlined,
+                          color: Colors.blue, size: 40),
                       SizedBox(height: 12),
-                      Text('Pilih foto bukti pembayaran', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                      Text('Pilih foto bukti pembayaran',
+                          style: TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold)),
                       SizedBox(height: 4),
-                      Text('Format JPG/PNG', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                      Text('Format JPG/PNG',
+                          style: TextStyle(
+                              color: Colors.grey, fontSize: 10)),
                     ],
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
-              // Selected File Item
+
+              // Selected File
               if (_image != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -183,7 +214,9 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(image: FileImage(_image!), fit: BoxFit.cover),
+                          image: DecorationImage(
+                              image: FileImage(_image!),
+                              fit: BoxFit.cover),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -191,18 +224,26 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(_imageName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            Text(_imageSize, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                            Text(_imageName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
+                            Text(_imageSize,
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 10)),
                           ],
                         ),
                       ),
-                      const Icon(Icons.check_circle, color: AppColors.success),
+                      const Icon(Icons.check_circle,
+                          color: AppColors.success),
                     ],
                   ),
                 ),
-              
+
               const SizedBox(height: 30),
-              
+
               // Submit Button
               SizedBox(
                 width: double.infinity,
@@ -210,12 +251,22 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
                   onPressed: _isLoading ? null : _upload,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: _isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
-                    : const Text('Kirim bukti bayar', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Text('Kirim bukti bayar',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
                 ),
               )
             ],
@@ -230,8 +281,11 @@ class _CustomerUploadBuktiPageState extends State<CustomerUploadBuktiPage> {
       children: [
         Icon(icon, color: Colors.blue, size: 20),
         const SizedBox(width: 12),
-        Expanded(child: Text(title, style: const TextStyle(color: Colors.grey))),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Expanded(
+            child: Text(title,
+                style: const TextStyle(color: Colors.grey))),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
       ],
     );
   }

@@ -1,10 +1,11 @@
+import 'dart:math' show max;
 import 'package:flutter/material.dart';
 import 'package:pdam/models/bill_models.dart';
 import 'package:pdam/models/customer_models.dart';
 import 'package:pdam/service/api_service.dart';
 import 'package:pdam/service/app_collors.dart';
 import 'customer_upload_bukti_page.dart';
-import 'role_view.dart';
+import 'login_view.dart';
 
 class CustomerDashboardView extends StatefulWidget {
   const CustomerDashboardView({super.key});
@@ -29,16 +30,21 @@ class _CustomerDashboardViewState extends State<CustomerDashboardView> {
     setState(() => _isLoading = true);
     final profileRes = await ApiService.getMyProfile();
     final billsRes = await ApiService.getMyBills();
-    
+
     if (mounted) {
       setState(() {
         if (profileRes['success'] == true) {
           final data = profileRes['data'] ?? profileRes;
-          _customer = CustomerModel.fromJson(data);
+          _customer = CustomerModel.fromJson(
+              data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data));
         }
         if (billsRes['success'] == true) {
-          final bData = billsRes['data'] as List?;
-          _bills = bData?.map((e) => BillModel.fromJson(e)).toList() ?? [];
+          final bData = billsRes['data'];
+          if (bData is List) {
+            _bills = bData
+                .map((e) => BillModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+          }
         }
         _isLoading = false;
       });
@@ -74,7 +80,166 @@ class _CustomerDashboardViewState extends State<CustomerDashboardView> {
   }
 }
 
-// ---------------- TAB 1: BERANDA ----------------
+class _BillBarChart extends StatelessWidget {
+  final List<BillModel> bills;
+
+  const _BillBarChart({required this.bills});
+
+  static const List<Color> _barColors = [
+    Color(0xFF2563EB),
+    Color(0xFF10B981),
+    Color(0xFFF59E0B),
+    Color(0xFFEF4444),
+    Color(0xFF8B5CF6),
+    Color(0xFF06B6D4),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...bills]
+      ..sort((a, b) {
+        final aDate = a.year * 100 + a.month;
+        final bDate = b.year * 100 + b.month;
+        return aDate.compareTo(bDate);
+      });
+    final data = sorted.length > 6 ? sorted.sublist(sorted.length - 6) : sorted;
+
+    if (data.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('Belum ada data tagihan', style: TextStyle(color: Colors.grey)),
+        ),
+      );
+    }
+
+    final maxVal = data.fold<double>(0, (prev, b) => max(prev, b.effectiveTotal));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Grafik Tagihan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                    Text('6 bulan terakhir', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 160,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SizedBox(
+                  width: 52,
+                  height: 160,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(4, (i) {
+                      final val = maxVal * (3 - i) / 3;
+                      return Text(_formatShort(val), style: const TextStyle(fontSize: 9, color: Colors.grey));
+                    })..add(const Text('0', style: TextStyle(fontSize: 9, color: Colors.grey))),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(5, (_) => Divider(height: 0, color: Colors.grey.shade100, thickness: 1)),
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: List.generate(data.length, (i) {
+                          final bill = data[i];
+                          final ratio = maxVal > 0 ? bill.effectiveTotal / maxVal : 0.0;
+                          final barH = (ratio * 130).clamp(4.0, 130.0);
+                          final color = _barColors[i % _barColors.length];
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 3),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(_formatShort(bill.effectiveTotal),
+                                      style: TextStyle(fontSize: 8, color: color, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 600),
+                                    height: barH,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(data.length, (i) {
+              final color = _barColors[i % _barColors.length];
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                  const SizedBox(width: 3),
+                  Text(data[i].monthName.substring(0, 3), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatShort(double val) {
+    if (val >= 1000000) return 'Rp${(val / 1000000).toStringAsFixed(1)}jt';
+    if (val >= 1000) return 'Rp${(val / 1000).toStringAsFixed(0)}rb';
+    return 'Rp${val.toInt()}';
+  }
+}
+
 class _CustomerBerandaTab extends StatelessWidget {
   final CustomerModel? customer;
   final List<BillModel> bills;
@@ -86,31 +251,31 @@ class _CustomerBerandaTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isLoading) return const Center(child: CircularProgressIndicator());
     final latestBill = bills.isNotEmpty ? bills.first : null;
-    
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.primaryLight,
-                  child: Icon(Icons.person, color: AppColors.primary),
-                ),
+                CircleAvatar(backgroundColor: AppColors.primaryLight, child: Icon(Icons.person, color: AppColors.primary)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Halo', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      Text(customer?.name ?? 'Nama customer', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary)),
-                      Text('No. Pelanggan: ${customer?.customerNumber ?? '-'}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text(customer?.name ?? 'Nama customer',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
+                          overflow: TextOverflow.ellipsis),
+                      Text('No. Pelanggan: ${customer?.customerNumber ?? '-'}',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(20)),
@@ -121,15 +286,10 @@ class _CustomerBerandaTab extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            
-            // Tagihan Terbaru Card
             if (latestBill != null)
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF6F8FD),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: const Color(0xFFF6F8FD), borderRadius: BorderRadius.circular(20)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -150,7 +310,11 @@ class _CustomerBerandaTab extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(latestBill.totalFormatted, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.danger)),
+                        Flexible(
+                          child: Text(latestBill.totalFormatted,
+                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.danger),
+                              overflow: TextOverflow.ellipsis),
+                        ),
                         const SizedBox(width: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -164,41 +328,42 @@ class _CustomerBerandaTab extends StatelessWidget {
                       children: [
                         const Icon(Icons.water_drop_outlined, size: 16, color: Colors.blue),
                         const SizedBox(width: 4),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Pemakaian', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                            Text('${latestBill.usageValue} m³', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('Pemakaian', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          Text('${latestBill.usageValue} m³', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ]),
                         const SizedBox(width: 24),
                         const Icon(Icons.speed, size: 16, color: Colors.blue),
                         const SizedBox(width: 4),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Meter', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                            Text('#${latestBill.measurementNumber}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Text('Meter', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          Text('#${latestBill.measurementNumber}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ]),
                       ],
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {},
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                      child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('Bayar sekarang ', style: TextStyle(color: Colors.white)), Icon(Icons.arrow_forward, color: Colors.white, size: 16)]),
-                    )
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Text('Bayar sekarang', style: TextStyle(color: Colors.white)),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+                      ]),
+                    ),
                   ],
                 ),
               ),
-
+            const SizedBox(height: 24),
+            _BillBarChart(bills: bills),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Riwayat Tagihan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text('Riwayat Tagihan >', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                Text('Lihat semua >', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               ],
             ),
             const SizedBox(height: 16),
@@ -213,7 +378,7 @@ class _CustomerBerandaTab extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   final BillModel bill;
   const _HistoryCard({required this.bill});
-  
+
   @override
   Widget build(BuildContext context) {
     final isPaid = bill.isPaid;
@@ -234,26 +399,23 @@ class _HistoryCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${bill.monthName} ${bill.year}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('Pemakaian: ${bill.usageValue} m³', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${bill.monthName} ${bill.year}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text('Pemakaian: ${bill.usageValue} m³', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            ]),
+          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                  color: isPaid ? AppColors.successLight : AppColors.dangerLight,
+                  borderRadius: BorderRadius.circular(12)),
+              child: Text(isPaid ? 'Lunas' : 'Belum bayar',
+                  style: TextStyle(color: isPaid ? AppColors.success : AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: isPaid ? AppColors.successLight : AppColors.dangerLight, borderRadius: BorderRadius.circular(12)),
-                child: Text(isPaid ? 'Lunas' : 'Belum bayar', style: TextStyle(color: isPaid ? AppColors.success : AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 4),
-              Text(bill.totalFormatted, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
+            const SizedBox(height: 4),
+            Text(bill.totalFormatted, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ]),
           const SizedBox(width: 8),
           const Icon(Icons.chevron_right, color: Colors.grey),
         ],
@@ -262,7 +424,6 @@ class _HistoryCard extends StatelessWidget {
   }
 }
 
-// ---------------- TAB 2: TAGIHAN ----------------
 class _CustomerTagihanTab extends StatelessWidget {
   final List<BillModel> bills;
   final bool isLoading;
@@ -275,7 +436,7 @@ class _CustomerTagihanTab extends StatelessWidget {
     if (isLoading) return const Center(child: CircularProgressIndicator());
     final unpaid = bills.where((b) => b.isUnpaid || b.isPending).toList();
     double totalUnpaid = unpaid.fold(0, (sum, item) => sum + item.effectiveTotal);
-    
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -285,54 +446,39 @@ class _CustomerTagihanTab extends StatelessWidget {
             const Text('Tagihan Saya', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const Text('Kelola dan bayar tagihan air bulanan anda', style: TextStyle(color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 20),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.receipt_long, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Total belum dibayar', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                              Text('Rp ${totalUnpaid.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger, fontSize: 14)),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
+            Row(children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
+                  child: Row(children: [
+                    const Icon(Icons.receipt_long, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Total belum dibayar', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('Rp ${totalUnpaid.toInt()}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.danger, fontSize: 14),
+                          overflow: TextOverflow.ellipsis),
+                    ])),
+                  ]),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.water_drop_outlined, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Rata-rata pemakaian', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                              const Text('41,7 m³ / bulan', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 12)),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                )
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
+                  child: const Row(children: [
+                    Icon(Icons.water_drop_outlined, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Rata-rata pemakaian', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('41,7 m³ / bulan', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 12)),
+                    ])),
+                  ]),
+                ),
+              ),
+            ]),
             const SizedBox(height: 24),
             ...bills.map((b) => _BillCardDetailed(bill: b)),
           ],
@@ -360,76 +506,89 @@ class _BillCardDetailed extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_month, color: AppColors.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${bill.monthName} ${bill.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('No. Meteran: ${bill.measurementNumber}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                    ],
+            child: Row(children: [
+              const Icon(Icons.calendar_month, color: AppColors.primary),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${bill.monthName} ${bill.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text('No. Meteran: ${bill.measurementNumber}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: bill.isPaid ? AppColors.successLight : AppColors.dangerLight,
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Text(bill.statusLabel,
+                      style: TextStyle(color: bill.isPaid ? AppColors.success : AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: bill.isPaid ? AppColors.successLight : AppColors.dangerLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(bill.statusLabel, style: TextStyle(color: bill.isPaid ? AppColors.success : AppColors.danger, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(bill.totalFormatted, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: bill.isPaid ? Colors.black : AppColors.danger)),
-                  ],
-                ),
-              ],
-            ),
+                const SizedBox(height: 4),
+                Text(bill.totalFormatted,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: bill.isPaid ? Colors.black : AppColors.danger)),
+              ]),
+            ]),
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.water_drop_outlined, size: 16, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    Text('Pemakaian: ${bill.usageValue} m³', style: const TextStyle(fontSize: 12)),
-                  ],
-                ),
-                if (bill.isUnpaid)
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerUploadBuktiPage(bill: bill)));
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [Text('Bayar sekarang ', style: TextStyle(color: Colors.white)), Icon(Icons.arrow_forward, color: Colors.white, size: 16)]),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(border: Border.all(color: AppColors.success), borderRadius: BorderRadius.circular(20)),
-                    child: const Row(
-                      children: [Text('Sudah bayar ', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)), Icon(Icons.check_circle_outline, color: AppColors.success, size: 16)],
-                    ),
-                  )
-              ],
-            ),
-          )
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.water_drop_outlined, size: 16, color: Colors.blue),
+                const SizedBox(width: 4),
+                Text('Pemakaian: ${bill.usageValue} m³', style: const TextStyle(fontSize: 12)),
+              ]),
+              const SizedBox(height: 10),
+              Align(alignment: Alignment.centerRight, child: _buildActionButton(context)),
+            ]),
+          ),
         ],
       ),
     );
   }
+
+  Widget _buildActionButton(BuildContext context) {
+    if (bill.isUnpaid || bill.isRejected) {
+      return SizedBox(
+        height: 36,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerUploadBuktiPage(bill: bill)));
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bill.isRejected ? AppColors.danger : AppColors.primary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 16),
+          label: Text(bill.isRejected ? 'Bayar Ulang' : 'Bayar sekarang',
+              style: const TextStyle(color: Colors.white, fontSize: 13)),
+        ),
+      );
+    } else if (bill.isPending) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(border: Border.all(color: AppColors.warning), borderRadius: BorderRadius.circular(20)),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.access_time, color: AppColors.warning, size: 14),
+          SizedBox(width: 6),
+          Text('Menunggu verifikasi', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.bold, fontSize: 12)),
+        ]),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(border: Border.all(color: AppColors.success), borderRadius: BorderRadius.circular(20)),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.check_circle_outline, color: AppColors.success, size: 14),
+          SizedBox(width: 6),
+          Text('Sudah bayar', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 12)),
+        ]),
+      );
+    }
+  }
 }
 
-// ---------------- TAB 3: BAYAR ----------------
 class _CustomerBayarTab extends StatelessWidget {
   final List<BillModel> bills;
   final bool isLoading;
@@ -439,8 +598,8 @@ class _CustomerBayarTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) return const Center(child: CircularProgressIndicator());
-    final unpaidBills = bills.where((b) => b.isUnpaid).toList();
-    
+    final unpaidBills = bills.where((b) => b.isUnpaid || b.isRejected).toList();
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -450,20 +609,15 @@ class _CustomerBayarTab extends StatelessWidget {
             const Text('Bayar Tagihan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const Text('Pilih tagihan yang ingin anda bayar', style: TextStyle(color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 20),
-            
             if (unpaidBills.isEmpty)
               const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('Tidak ada tagihan yang belum dibayar.')))
             else
               ...unpaidBills.map((b) => _BillCardDetailed(bill: b)),
-              
             const SizedBox(height: 30),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Riwayat Pembayaran', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text('Riwayat Tagihan >', style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
+            const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Riwayat Pembayaran', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Riwayat Tagihan >', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ]),
             const Text('Rekam jejak pembayaran anda', style: TextStyle(color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 16),
             ...bills.where((b) => b.isPaid || b.isPending).map((b) => _PaymentHistoryCard(bill: b)),
@@ -483,7 +637,7 @@ class _PaymentHistoryCard extends StatelessWidget {
     Color statusColor;
     IconData iconData;
     String statusText;
-    
+
     if (bill.isPending) {
       statusColor = AppColors.warning;
       iconData = Icons.access_time;
@@ -497,7 +651,7 @@ class _PaymentHistoryCard extends StatelessWidget {
       iconData = Icons.close;
       statusText = 'Ditolak';
     }
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -509,51 +663,37 @@ class _PaymentHistoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: Icon(iconData, color: statusColor),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${bill.monthName} ${bill.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(bill.totalFormatted, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text('Dikirim', style: TextStyle(color: Colors.grey, fontSize: 10)),
-                  Text(bill.dueDate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              )
-            ],
-          ),
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: Icon(iconData, color: statusColor),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${bill.monthName} ${bill.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(bill.totalFormatted, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            ])),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              const Text('Dikirim', style: TextStyle(color: Colors.grey, fontSize: 10)),
+              Text(bill.dueDate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ]),
+          ]),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          )
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+              child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ]),
         ],
       ),
     );
   }
 }
 
-// ---------------- TAB 4: PROFILE ----------------
 class _CustomerProfileTab extends StatelessWidget {
   final CustomerModel? customer;
   final bool isLoading;
@@ -563,23 +703,19 @@ class _CustomerProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading) return const Center(child: CircularProgressIndicator());
-    
+
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Align(
+            const Align(
               alignment: Alignment.centerLeft,
-              child: const Text('Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              child: Text('Profile', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 30),
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.person, size: 50, color: Colors.white),
-            ),
+            CircleAvatar(radius: 50, backgroundColor: AppColors.primary, child: const Icon(Icons.person, size: 50, color: Colors.white)),
             const SizedBox(height: 16),
             Text(customer?.name ?? '-', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Text('Pelanggan Alirin sejak Jan 2022', style: const TextStyle(color: Colors.grey, fontSize: 12)),
@@ -587,43 +723,37 @@ class _CustomerProfileTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(20)),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [Icon(Icons.person_outline, color: AppColors.primary, size: 16), SizedBox(width: 8), Text('Customer', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold))],
-              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.person_outline, color: AppColors.primary, size: 16),
+                SizedBox(width: 8),
+                Text('Customer', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              ]),
             ),
             const SizedBox(height: 30),
-            
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Informasi Customer', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const Divider(height: 30),
-                  _infoRow(Icons.credit_card, 'No. Pelanggan (NIK)', customer?.customerNumber ?? '-'),
-                  const SizedBox(height: 16),
-                  _infoRow(Icons.phone, 'No. Telepon', customer?.phone ?? '-'),
-                  const SizedBox(height: 16),
-                  _infoRow(Icons.location_on_outlined, 'Alamat', customer?.address ?? '-'),
-                  const SizedBox(height: 16),
-                  _infoRow(Icons.person_outline, 'Username customer', customer?.username ?? '-'),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Informasi Customer', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Divider(height: 30),
+                _infoRow(Icons.credit_card, 'No. Pelanggan (NIK)', customer?.customerNumber ?? '-'),
+                const SizedBox(height: 16),
+                _infoRow(Icons.phone, 'No. Telepon', customer?.phone ?? '-'),
+                const SizedBox(height: 16),
+                _infoRow(Icons.location_on_outlined, 'Alamat', customer?.address ?? '-'),
+                const SizedBox(height: 16),
+                _infoRow(Icons.person_outline, 'Username customer', customer?.username ?? '-'),
+              ]),
             ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!), borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Informasi Layanan', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const Divider(height: 30),
-                  _infoRowText('Jenis layanan', customer?.serviceName ?? '-'),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Informasi Layanan', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Divider(height: 30),
+                _infoRowText('Jenis layanan', customer?.serviceName ?? '-'),
+              ]),
             ),
             const SizedBox(height: 30),
             SizedBox(
@@ -634,15 +764,17 @@ class _CustomerProfileTab extends StatelessWidget {
                   if (context.mounted) {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (_) => const RoleView()),
+                      MaterialPageRoute(builder: (_) => const LoginView()), // ← FIXED
                       (route) => false,
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger, padding: const EdgeInsets.symmetric(vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.danger,
+                    padding: const EdgeInsets.symmetric(vertical: 16)),
                 child: const Text('Keluar', style: TextStyle(color: Colors.white)),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -650,22 +782,20 @@ class _CustomerProfileTab extends StatelessWidget {
   }
 
   Widget _infoRow(IconData icon, String title, String value) {
-    return Row(
-      children: [
-        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: AppColors.primary)),
-        const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text(title, style: const TextStyle(color: Colors.grey, fontSize: 10)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))],
-        )
-      ],
-    );
+    return Row(children: [
+      Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: AppColors.primary)),
+      const SizedBox(width: 16),
+      Flexible(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), overflow: TextOverflow.ellipsis),
+      ])),
+    ]);
   }
-  
+
   Widget _infoRowText(String title, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [Text(title, style: const TextStyle(color: Colors.grey)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold))],
-    );
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(title, style: const TextStyle(color: Colors.grey)),
+      Flexible(child: Text(value, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, textAlign: TextAlign.end)),
+    ]);
   }
 }

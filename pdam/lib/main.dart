@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'splash_screen.dart';
-import 'views/role_view.dart';
+import 'views/login_view.dart';
 import 'views/customer_riwayat_pembayaran_page.dart';
 import 'views/customer_dashboard_view.dart';
 import 'views/main_view.dart';
@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
       ),
       home: const SplashScreen(),
       routes: {
-        '/role': (_) => const RoleView(),
+        '/login': (_) => const LoginView(),
         '/customer-dashboard': (_) => const CustomerDashboardView(),
         '/admin-dashboard': (_) => const MainView(),
         '/customer-riwayat-pembayaran': (_) =>

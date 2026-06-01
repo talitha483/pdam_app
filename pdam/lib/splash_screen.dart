@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:pdam/views/role_view.dart';
+import 'package:pdam/views/login_view.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -105,11 +105,11 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  // ── Navigasi ke RoleView ─────────────────────────────────────
+  // ── Navigasi ke LoginView ─────────────────────────────────────
   void _goToRoleView() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const RoleView()),
+      MaterialPageRoute(builder: (_) => const LoginView()),
     );
   }
 
