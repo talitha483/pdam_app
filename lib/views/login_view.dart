@@ -1,7 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:pdam/controllers/auth_controllers.dart';
 import 'package:pdam/service/app_collors.dart';
-import 'package:flutter/material.dart';
+import 'package:pdam/views/customer_login_view.dart';
+import 'package:pdam/views/role_view.dart';
+import 'package:pdam/views/splash_view.dart';
 import 'main_view.dart';
+import 'register_view.dart';
 import 'customer_dashboard_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -76,20 +80,36 @@ class _LoginViewState extends State<LoginView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: screenH * 0.07),
+                SizedBox(height: screenH * 0.05),
+
+                // ── Tombol kembali ──
+                GestureDetector(
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RoleView()),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.black,
+                    size: 22,
+                  ),
+                ),
+
+                SizedBox(height: screenH * 0.04),
 
                 // ── Judul ──
                 const Text(
-                  'Selamat Datang!',
+                  'Hai Selamat\nDatang Kembali!',
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
                     color: Colors.black,
+                    height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Masuk ke akun Anda untuk melanjutkan',
+                  'Masuk sebagai admin PDAM',
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFF0066D6),
@@ -192,8 +212,7 @@ class _LoginViewState extends State<LoginView> {
                       disabledBackgroundColor:
                           const Color(0xFF0066D6).withOpacity(0.6),
                       elevation: 6,
-                      shadowColor:
-                          const Color(0xFF0066D6).withOpacity(0.35),
+                      shadowColor: const Color(0xFF0066D6).withOpacity(0.35),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -218,27 +237,128 @@ class _LoginViewState extends State<LoginView> {
                   ),
                 ),
 
-                SizedBox(height: screenH * 0.08),
+                const SizedBox(height: 20),
 
-                // ── Logo di bawah ──
+                // ── Daftar akun admin baru ──
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Belum punya akun? ',
+                        style: TextStyle(
+                            fontSize: 13, color: Color(0xFF6B7280)),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const RegisterView()),
+                        ),
+                        child: const Text(
+                          'Daftar di sini',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF0066D6),
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // ── Divider ──
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'Atau login sebagai customer',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Tombol ke Customer Login ──
+                GestureDetector(
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CustomerLoginView()),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF0066D6)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_outline_rounded,
+                            color: Color(0xFF0066D6), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Login sebagai Customer',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0066D6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: screenH * 0.06),
+
+                // ── Logo ──
                 Center(
                   child: Column(
                     children: [
                       Image.asset(
                         'assets/images/Alirin logo.png',
-                        height: 130,
+                        height: 100,
                         fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.water_drop,
+                          size: 60,
+                          color: Color(0xFF0066D6),
+                        ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                       Image.asset(
                         'assets/images/Alirin.png',
-                        
-                        height: 30,
+                        height: 26,
                         fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Text(
+                          'Alirin',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0066D6),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -270,8 +390,7 @@ class _LoginViewState extends State<LoginView> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFF0066D6), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF0066D6), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -282,10 +401,8 @@ class _LoginViewState extends State<LoginView> {
           borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
         hintText: hint,
-        hintStyle:
-            const TextStyle(color: Color(0xFFAFAFAF), fontSize: 14),
-        prefixIcon:
-            Icon(icon, color: const Color(0xFF0066D6), size: 20),
+        hintStyle: const TextStyle(color: Color(0xFFAFAFAF), fontSize: 14),
+        prefixIcon: Icon(icon, color: const Color(0xFF0066D6), size: 20),
         suffixIcon: suffixIcon,
         contentPadding:
             const EdgeInsets.symmetric(vertical: 16, horizontal: 16),

@@ -88,7 +88,7 @@ class AuthController {
 
       if (result['data'] != null) {
         adminJson = result['data'] as Map<String, dynamic>;
-      } else if (result['id'] != null) {
+      } else if (result['id'] != null) {  
         adminJson = result;
       }
 

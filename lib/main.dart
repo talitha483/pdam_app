@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'splash_screen.dart';
+import 'views/splash_view.dart';
 import 'views/login_view.dart';
 import 'views/customer_riwayat_pembayaran_page.dart';
 import 'views/customer_dashboard_view.dart';
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         useMaterial3: true,
       ),
-      home: const SplashScreen(),
+      home: const SplashView(),
       routes: {
         '/login': (_) => const LoginView(),
         '/customer-dashboard': (_) => const CustomerDashboardView(),

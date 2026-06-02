@@ -1,7 +1,7 @@
-import 'package:pdam/controllers/service_controllers.dart';
-import 'package:pdam/service/app_collors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pdam/controllers/service_controllers.dart';
+import 'package:pdam/service/app_collors.dart';
 
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
@@ -134,7 +134,7 @@ class _AddServiceViewState extends State<AddServiceView> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      flex: 2,
+
                       child: CustomButton(
                         text: 'Simpan',
                         isLoading: _isLoading,
